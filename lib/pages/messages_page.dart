@@ -57,7 +57,7 @@ class MessagesPage extends StatelessWidget {
                   child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemBuilder: (BuildContext context, int index) {
-                  return Text('text');
+                  return Text('texing');
                 },
               ))
             ],
