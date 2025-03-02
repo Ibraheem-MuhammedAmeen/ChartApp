@@ -1,12 +1,35 @@
 import 'package:flutter/material.dart';
 
+import '../helpers.dart';
+import '../widgets/avatar.dart';
+
 class NotificationsPages extends StatelessWidget {
   const NotificationsPages({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Text('MessagesPage'),
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          'Notification',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+        centerTitle: true,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 24.0),
+            child: Avatar.small(url: Helpers.randomPictureUrl()),
+          ),
+        ],
+      ),
+      body: const Center(
+        child: Text('Notification_Page'),
+      ),
     );
   }
 }
