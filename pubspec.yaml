@@ -37,6 +37,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   google_fonts: ^6.2.1
   cached_network_image: ^3.4.1
+  faker: ^2.2.0
 
 dev_dependencies:
   flutter_test:
