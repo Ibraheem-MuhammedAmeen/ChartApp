@@ -2,19 +2,37 @@ import 'package:chatter/models/story_data.dart';
 import 'package:chatter/widgets/icon_buttons.dart';
 import 'package:faker/faker.dart';
 import 'package:flutter/material.dart';
+import 'package:timeago/timeago.dart' as timeago;
 
 import '../helpers.dart';
 import '../models/message_data.dart';
+import '../screen/chart_screen.dart';
 import '../theme.dart';
 import '../widgets/avatar.dart';
 
 class MessagesPage extends StatelessWidget {
   const MessagesPage({super.key});
 
+  Widget _delegate(BuildContext context, int index) {
+    final Faker faker = Faker();
+    final date = Helpers.randomDate();
+
+    return _MessageTitle(
+      messageData: MessageData(
+        senderName: faker.person.name(),
+        message: faker.lorem.sentence(),
+        messageDate: date,
+        dateMessage: timeago.format(date), // Example: "2 hours ago"
+        profilePicture: Helpers.randomPictureUrl(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        iconTheme: Theme.of(context).iconTheme,
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text(
@@ -46,27 +64,12 @@ class MessagesPage extends StatelessWidget {
           ),
           SliverList(
             delegate: SliverChildBuilderDelegate(
-              (BuildContext context, int index) {
-                return Text('');
-              },
+              _delegate as NullableIndexedWidgetBuilder,
             ),
           ),
         ],
       ),
     );
-    Widget _delegate(BuildContext context, int index) {
-      final Faker faker = Faker();
-      final date = Helpers.randomDate();
-      return _MessageTitle(
-        messageData: MessageData(
-          senderName: faker.person.name(),
-          message: faker.lorem.sentence(),
-          messageDate: date,
-          dateMessage: Jiffy(date).fromNow(),
-          profilePicture: Helpers.randomPictureUrl(),
-        ),
-      );
-    }
   }
 }
 
@@ -82,7 +85,7 @@ class _MessageTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
-        //Navigator.of(context).push(ChatScreen.route(messageData));
+        Navigator.of(context).push(ChatScreen.route(messageData));
       },
       child: Container(
         height: 100,
