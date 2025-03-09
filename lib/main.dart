@@ -1,14 +1,22 @@
 import 'package:chatter/app.dart';
 import 'package:chatter/screen/home_screen.dart';
+import 'package:chatter/screen/login_screen.dart';
+import 'package:chatter/screen/select_user_screen.dart';
+import 'package:chatter/screen/sign_up.dart';
 import 'package:chatter/theme.dart';
+import 'package:chatter/widgets/auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:stream_chat_flutter_core/stream_chat_flutter_core.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding
+      .ensureInitialized(); // Ensure Flutter is ready before Firebase
+  await Firebase.initializeApp(); // Initialize Firebase
+
   final client = StreamChatClient(streamkey);
-  runApp(MyApp(
-    client: client,
-  ));
+
+  runApp(MyApp(client: client));
 }
 
 class MyApp extends StatelessWidget {
@@ -32,7 +40,13 @@ class MyApp extends StatelessWidget {
           child: child!,
         );
       },
-      home: const HomeScreen(),
+      initialRoute: '/login',
+      routes: {
+        '/login': (ctx) => const LoginScreen(),
+        '/signup': (ctx) => const SignupScreen(),
+      },
+      //home: const AuthScreen(),
     );
   }
 }
+//SelectUserScreen()
