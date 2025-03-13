@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:chatter/helpers.dart';
 import 'package:chatter/screen/login_screen.dart';
 import 'package:chatter/widgets/getImage.dart';
 import 'package:chatter/widgets/widgets.dart';
@@ -9,6 +10,7 @@ import 'package:stream_chat_flutter_core/stream_chat_flutter_core.dart'
     as stream;
 
 import '../../../app.dart';
+import '../api_service.dart';
 import 'home_screen.dart';
 
 class SelectUserScreen extends StatefulWidget {
@@ -28,28 +30,67 @@ class _SelectUserScreenState extends State<SelectUserScreen> {
   /// Fetch users from Firestore
   Future<List<Map<String, dynamic>>> fetchUsers() async {
     var snapshot = await FirebaseFirestore.instance.collection('users').get();
-    return snapshot.docs.map((doc) => doc.data()).toList();
+
+    return snapshot.docs.map((doc) {
+      var data = doc.data();
+      data['id'] = doc.id; // ✅ Ensure each user has an 'id'
+      return data;
+    }).toList();
   }
 
-  /// Handle user selection and login
   Future<void> onUserSelected(Map<String, dynamic> user) async {
-    print("✅ Button tapped! User selected: ${user['name']}");
-
     setState(() {
       _loading = true;
     });
 
     try {
       final client = stream.StreamChatCore.of(context).client;
+      final FirebaseAuth _firebase = FirebaseAuth.instance;
+
+      dynamic currentUser = await getUserName();
+      dynamic clickedUser = user['Name'];
+
+      if (currentUser.toString().trim().toLowerCase() !=
+          clickedUser.toString().trim().toLowerCase()) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "⚠️ Selected user does not match the logged-in user.",
+              style: TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => SelectUserScreen()),
+        );
+        return;
+      }
+
+      // 🔥 Ensure user ID exists
+      String? userId = user['id'] as String?;
+      if (userId == null || userId.isEmpty) {
+        throw Exception("❌ User ID is missing!");
+      }
+
+      // 🔥 Retrieve token from API
+      final tokenResponse = await ApiService.getToken(userId);
+
+      if (tokenResponse == null || !tokenResponse.containsKey('token')) {
+        throw Exception("❌ Failed to retrieve token for user $userId");
+      }
+
+      String userToken = tokenResponse['token']!; // ✅ Real Stream token
+      print("🔑 Using Firestore token: $userToken");
+
+      // ✅ Connect user using a valid Stream token
       await client.connectUser(
         stream.User(
-          id: user['id'], // Ensure 'id' field exists in Firestore
-          extraData: {
-            'name': user['name'],
-            'image': user['image'], // Ensure 'image' field exists
-          },
+          id: userId,
+          extraData: {'name': user['Name']},
         ),
-        client.devToken(user['id']).rawValue,
+        userToken, // ✅ Now using the real token from Firestore
       );
 
       if (!mounted) return;
@@ -57,14 +98,14 @@ class _SelectUserScreenState extends State<SelectUserScreen> {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => HomeScreen()),
       );
-    } on Exception catch (e, st) {
+    } on Exception catch (e) {
       print('❌ Error: Could not connect user - $e');
-
-      if (!mounted) return;
-
-      setState(() {
-        _loading = false;
-      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -141,7 +182,6 @@ class _SelectUserScreenState extends State<SelectUserScreen> {
   }
 }
 
-/// User Button Widget
 class SelectUserButton extends StatelessWidget {
   const SelectUserButton({
     Key? key,
@@ -166,7 +206,7 @@ class SelectUserButton extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Text(
-                user['name'] ?? 'Unknown', // ✅ Ensure name is not null
+                user['Name'] ?? 'Unknown', // ✅ Ensure name is not null
                 style: const TextStyle(fontSize: 16),
               ),
             ),

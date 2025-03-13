@@ -14,6 +14,7 @@ void main() async {
       .ensureInitialized(); // Ensure Flutter is ready before Firebase
   await Firebase.initializeApp(); // Initialize Firebase
 
+  //creating an instance of StreamChatClient and passing it down the tree
   final client = StreamChatClient(streamkey);
 
   runApp(MyApp(client: client));

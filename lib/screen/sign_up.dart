@@ -2,6 +2,8 @@ import 'package:chatter/screen/login_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:stream_chat_flutter_core/stream_chat_flutter_core.dart'
+    as stream;
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -40,6 +42,8 @@ class _SignupScreenState extends State<SignupScreen> {
       User? user = userCredential.user;
 
       if (user != null) {
+        final client = stream.StreamChatCore.of(context).client;
+        String userToken = client.devToken(user.uid).rawValue;
         // Update user profile with phone number
         await user
             .updateDisplayName(_enteredNumber); // This is just a workaround
@@ -49,7 +53,10 @@ class _SignupScreenState extends State<SignupScreen> {
           'email': _enteredEmail,
           'phone': _enteredNumber,
           'Name': _enteredName,
+          'token': userToken,
         });
+        print('token' + userToken);
+        print(user);
       }
       setState(() {
         _isloading = false;
