@@ -1,17 +1,11 @@
-import 'dart:math';
-import 'package:chatter/helpers.dart';
-import 'package:chatter/screen/login_screen.dart';
-import 'package:chatter/widgets/getImage.dart';
-import 'package:chatter/widgets/widgets.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:stream_chat_flutter_core/stream_chat_flutter_core.dart'
     as stream;
-
-import '../../../app.dart';
 import '../api_service.dart';
 import 'home_screen.dart';
+import 'login_screen.dart';
 
 class SelectUserScreen extends StatefulWidget {
   static Route get route => MaterialPageRoute(
@@ -33,7 +27,9 @@ class _SelectUserScreenState extends State<SelectUserScreen> {
 
     return snapshot.docs.map((doc) {
       var data = doc.data();
-      data['id'] = doc.id; // ✅ Ensure each user has an 'id'
+      data['id'] = doc.id;
+      data['profileImageUrl'] =
+          data['profileImageUrl'] ?? ''; // Ensure no null values
       return data;
     }).toList();
   }
@@ -47,50 +43,25 @@ class _SelectUserScreenState extends State<SelectUserScreen> {
       final client = stream.StreamChatCore.of(context).client;
       final FirebaseAuth _firebase = FirebaseAuth.instance;
 
-      dynamic currentUser = await getUserName();
-      dynamic clickedUser = user['Name'];
-
-      if (currentUser.toString().trim().toLowerCase() !=
-          clickedUser.toString().trim().toLowerCase()) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              "⚠️ Selected user does not match the logged-in user.",
-              style: TextStyle(color: Colors.white),
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
-
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => SelectUserScreen()),
-        );
-        return;
-      }
-
-      // 🔥 Ensure user ID exists
-      String? userId = user['id'] as String?;
+      String? userId = user['id'];
       if (userId == null || userId.isEmpty) {
         throw Exception("❌ User ID is missing!");
       }
 
-      // 🔥 Retrieve token from API
       final tokenResponse = await ApiService.getToken(userId);
 
       if (tokenResponse == null || !tokenResponse.containsKey('token')) {
         throw Exception("❌ Failed to retrieve token for user $userId");
       }
 
-      String userToken = tokenResponse['token']!; // ✅ Real Stream token
-      print("🔑 Using Firestore token: $userToken");
+      String userToken = tokenResponse['token']!;
 
-      // ✅ Connect user using a valid Stream token
       await client.connectUser(
         stream.User(
           id: userId,
           extraData: {'name': user['Name']},
         ),
-        userToken, // ✅ Now using the real token from Firestore
+        userToken,
       );
 
       if (!mounted) return;
@@ -166,7 +137,7 @@ class _SelectUserScreenState extends State<SelectUserScreen> {
                               var user = users[index];
 
                               return SelectUserButton(
-                                user: user, // ✅ Pass Firestore user data
+                                user: user,
                                 onPressed: onUserSelected,
                               );
                             },
@@ -201,18 +172,35 @@ class SelectUserButton extends StatelessWidget {
         child: Row(
           children: [
             Avatar.large(
-              url: Randimage, // ✅ Use Firestore image or random one
+              url: user['profileImageUrl']!.isNotEmpty
+                  ? user['profileImageUrl']
+                  : 'https://via.placeholder.com/150', // Default if no image
             ),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Text(
-                user['Name'] ?? 'Unknown', // ✅ Ensure name is not null
+                user['Name'] ?? 'Unknown',
                 style: const TextStyle(fontSize: 16),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class Avatar extends StatelessWidget {
+  final String url;
+  const Avatar.large({Key? key, required this.url}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return CircleAvatar(
+      radius: 30,
+      backgroundImage: url.isNotEmpty
+          ? NetworkImage(url)
+          : const AssetImage('assets/default_avatar.png') as ImageProvider,
     );
   }
 }

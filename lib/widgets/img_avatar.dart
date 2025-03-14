@@ -1,4 +1,8 @@
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ImgAvatar extends StatelessWidget {
   const ImgAvatar({
@@ -8,13 +12,14 @@ class ImgAvatar extends StatelessWidget {
   });
 
   final String? imageUrl;
-  final void Function(String) onUpload;
+  final void Function(String imageUrl) onUpload;
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         SizedBox(
-          width: 150,
+          width: double.infinity,
           height: 150,
           child: imageUrl != null
               ? Image.network(
@@ -22,6 +27,7 @@ class ImgAvatar extends StatelessWidget {
                   fit: BoxFit.cover,
                 )
               : Container(
+                  color: Colors.grey,
                   child: const Center(
                     child: Text('No Image'),
                   ),
@@ -29,7 +35,26 @@ class ImgAvatar extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         ElevatedButton(
-          onPressed: () async {},
+          onPressed: () async {
+            final ImagePicker picker = ImagePicker();
+            final XFile? image =
+                await picker.pickImage(source: ImageSource.gallery);
+            if (image == null) {
+              return;
+            }
+            // Get Supabase instance
+            final supabase = Supabase.instance.client;
+            final userId = supabase.auth.currentUser!.id;
+            final imageBytes = await image.readAsBytes();
+            final imagePath = '/$userId/profile';
+
+            await supabase.storage
+                .from('profiles')
+                .uploadBinary(imagePath, imageBytes);
+            final imageUrl =
+                supabase.storage.from('profiles').getPublicUrl(imagePath);
+            onUpload(imageUrl);
+          },
           child: const Text('Upload'),
         ),
       ],

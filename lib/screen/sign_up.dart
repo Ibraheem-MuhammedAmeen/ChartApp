@@ -1,9 +1,16 @@
+import 'dart:io';
+
+import 'package:chatter/helpers.dart';
 import 'package:chatter/screen/login_screen.dart';
+import 'package:chatter/widgets/img_avatar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:stream_chat_flutter_core/stream_chat_flutter_core.dart'
     as stream;
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
+
+import '../widgets/img_input.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -14,6 +21,7 @@ class SignupScreen extends StatefulWidget {
 
 class _SignupScreenState extends State<SignupScreen> {
   bool _isloading = false;
+  File? _selectedImage;
   final _formKey = GlobalKey<FormState>();
   final FirebaseAuth _firebase = FirebaseAuth.instance;
 
@@ -21,13 +29,27 @@ class _SignupScreenState extends State<SignupScreen> {
   var _enteredPassword = '';
   var _enteredNumber = '';
   var _enteredName = '';
+  String? _imageUrl;
 
   void _submit() async {
     setState(() {
       _isloading = true;
     });
     final isValid = _formKey.currentState!.validate();
-    if (!isValid) return;
+    if (!isValid) {
+      // Show Snackbar for invalid input
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Please fill out all fields correctly!',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      Navigator.push(
+          context, MaterialPageRoute(builder: (context) => SignupScreen()));
+    }
 
     _formKey.currentState!.save();
     try {
@@ -38,12 +60,30 @@ class _SignupScreenState extends State<SignupScreen> {
         password: _enteredPassword,
       );
 
+      // Authenticate user with Supabase after Firebase signup
+      await supabase.Supabase.instance.client.auth.signInWithPassword(
+        email: _enteredEmail,
+        password: _enteredPassword,
+      );
+
+// Now, Supabase should recognize the user session
+      final userId = supabase.Supabase.instance.client.auth.currentUser?.id;
+      print("Supabase user ID: $userId");
+
+      //Sending to superbase
+      if (_selectedImage != null) {
+        _imageUrl = await onSubmitSupbase(_selectedImage!);
+        print('$_selectedImage here is not equal to null');
+      }
+      print(_imageUrl! + 'null check');
+      if (_imageUrl == null) {
+        throw Exception("Image upload failed");
+      }
+      print(_imageUrl! + 'is not equal to null');
       // Get the created user
       User? user = userCredential.user;
-
       if (user != null) {
         final client = stream.StreamChatCore.of(context).client;
-        String userToken = client.devToken(user.uid).rawValue;
         // Update user profile with phone number
         await user
             .updateDisplayName(_enteredNumber); // This is just a workaround
@@ -53,9 +93,8 @@ class _SignupScreenState extends State<SignupScreen> {
           'email': _enteredEmail,
           'phone': _enteredNumber,
           'Name': _enteredName,
-          'token': userToken,
+          'profileImage': _imageUrl,
         });
-        print('token' + userToken);
         print(user);
       }
       setState(() {
@@ -154,6 +193,21 @@ class _SignupScreenState extends State<SignupScreen> {
                                   return null;
                                 },
                                 onSaved: (value) => _enteredNumber = value!,
+                              ),
+                              SizedBox(
+                                height: 10,
+                              ),
+                              /*ImgAvatar(
+                                imageUrl: _imageUrl,
+                                onUpload: (imageUrl) {
+                                  _imageUrl = imageUrl;
+                                },
+                              ),*/
+
+                              ImageInput(
+                                onPickImage: (image) {
+                                  _selectedImage = image;
+                                },
                               ),
                               const SizedBox(height: 12),
                               Row(

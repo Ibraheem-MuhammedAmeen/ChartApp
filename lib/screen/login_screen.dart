@@ -21,7 +21,19 @@ class _LoginScreenState extends State<LoginScreen> {
       _isloading = true;
     });
     final isValid = _formKey.currentState!.validate();
-    if (!isValid) return;
+    if (!isValid) {
+      // Show Snackbar for invalid input
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Please fill out all fields correctly!',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     _formKey.currentState!.save();
     try {

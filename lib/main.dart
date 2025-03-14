@@ -8,6 +8,7 @@ import 'package:chatter/widgets/auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:stream_chat_flutter_core/stream_chat_flutter_core.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding
@@ -17,6 +18,12 @@ void main() async {
   //creating an instance of StreamChatClient and passing it down the tree
   final client = StreamChatClient(streamkey);
 
+  await Supabase.initialize(
+    url:
+        'https://nadeweensbspwoeufxbj.supabase.co', // ✅ Replace with your Supabase URL
+    anonKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hZGV3ZWVuc2JzcHdvZXVmeGJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE4ODQ2MTMsImV4cCI6MjA1NzQ2MDYxM30.dZgacY--jlev7xtSqd8pLnxQcqE1GrwxEDNAwc8Ft40', // ✅ Replace with your Anon Key
+  );
   runApp(MyApp(client: client));
 }
 
